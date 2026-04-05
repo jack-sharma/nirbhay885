@@ -1,0 +1,7 @@
+{
+  "name": "sara",
+  "description": "A modern emotional companion that simulates a real human friend with emotional intelligence and natural voice.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

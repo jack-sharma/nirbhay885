@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid']) &&
+             data.uid is string &&
+             (!('name' in data) || (data.name is string && data.name.size() < 100));
+    }
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'sender', 'timestamp']) &&
+             data.text is string &&
+             data.sender in ['user', 'ai'] &&
+             data.timestamp is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      
+      match /messages/{msgId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMessage(request.resource.data);
+      }
+    }
+  }
+}
