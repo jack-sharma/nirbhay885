@@ -87,7 +87,7 @@ async function startServer() {
   app.get("/api/top-tracks", async (req, res) => {
     try {
       const limit = req.query.limit || 5;
-      const apiKey = process.env.LASTFM_API_KEY || "0b415a1c6ebfff9919a99445d09721aa";
+      const apiKey = process.env.LASTFM_API_KEY || "f9eca5864afac6244f0410d0ec8ff406";
       const url = `https://ws.audioscrobbler.com/2.0/?method=chart.gettoptracks&api_key=${apiKey}&format=json&limit=${limit}`;
       
       const response = await fetch(url);

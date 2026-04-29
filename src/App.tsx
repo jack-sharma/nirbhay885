@@ -38,6 +38,7 @@ interface UserProfile {
     hobbies?: string;
     birthday?: string;
     other?: string;
+    assistantName?: string;
   };
 }
 
@@ -51,6 +52,7 @@ interface ChatMessage {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const assistantName = profile?.preferences?.assistantName || 'sara';
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [emotion, setEmotion] = useState<Emotion>('neutral');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -378,6 +380,8 @@ export default function App() {
             playSong(resp.toolCall.args.query);
           } else if (resp.toolCall.name === 'controlMusic') {
             handleMusicControl(resp.toolCall.args.action);
+          } else if (resp.toolCall.name === 'openSettings') {
+            setShowProfile(true);
           }
         }
         if (resp.interrupted) {
@@ -395,7 +399,7 @@ export default function App() {
       });
       // Unified personality: "friendly"
       try {
-        await session.connect('friendly', profile, history);
+        await session.connect('friendly', profile, history, assistantName);
         sessionRef.current = session;
         setErrorMessage(null);
       } catch (err: any) {
@@ -430,7 +434,7 @@ export default function App() {
           const snap = await getDocs(q);
           const history = snap.docs.map(doc => {
             const data = doc.data();
-            return `${data.sender === 'user' ? 'User' : 'sara'}: ${data.text}`;
+            return `${data.sender === 'user' ? 'User' : assistantName}: ${data.text}`;
           }).reverse();
           historySummary = history.join("\n");
         } catch (err) {
@@ -568,7 +572,7 @@ export default function App() {
         >
           <SmileBall emotion="loving" isSpeaking={false} />
         </motion.div>
-        <h1 className="text-5xl font-bold text-primary mb-4 tracking-tight font-display">sara</h1>
+        <h1 className="text-5xl font-bold text-primary mb-4 tracking-tight font-display">{assistantName}</h1>
         <p className="text-gray-500 max-w-md mb-8 text-lg">
           Your emotional companion. Always here for you.
         </p>
@@ -581,16 +585,6 @@ export default function App() {
             <User size={20} />
             Sign In with Google
           </button>
-
-          {needsApiKey && (
-            <button 
-              onClick={handleSelectKey}
-              className="px-8 py-4 bg-white border-2 border-primary text-primary rounded-2xl font-bold transition-all flex items-center gap-3 hover:bg-primary/5 active:scale-95"
-            >
-              <Zap size={20} />
-              Select API Key (Required)
-            </button>
-          )}
         </div>
       </div>
     );
@@ -607,21 +601,11 @@ export default function App() {
       <div className="fixed -bottom-20 -left-20 w-80 h-80 bg-lite-blue/30 blur-[100px] rounded-full -z-10" />
       <div className="fixed -top-20 -right-20 w-96 h-96 bg-lite-pink/30 blur-[100px] rounded-full -z-10" />
 
-      {/* Header */}
+      {/* Header (Hidden buttons as requested) */}
       <div className="flex items-center w-full px-8 justify-between z-10 -mt-2">
-        <button 
-          onClick={handleLogout}
-          className="p-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white/80 shadow-sm text-primary hover:scale-110 transition-transform"
-        >
-          <LogOut size={20} />
-        </button>
-        <h2 className="text-primary font-display font-bold text-3xl tracking-tight">sara</h2>
-        <button 
-          onClick={() => setShowProfile(true)}
-          className="p-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white/80 shadow-sm text-primary hover:scale-110 transition-transform"
-        >
-          <Settings size={20} />
-        </button>
+        <div className="w-10 h-10" /> {/* Spacer */}
+        <h2 className="text-primary font-display font-bold text-3xl tracking-tight">{assistantName}</h2>
+        <div className="w-10 h-10" /> {/* Spacer */}
       </div>
 
       {/* The Ball Section */}
@@ -656,162 +640,39 @@ export default function App() {
           ) : (
             <motion.div
               key="controls"
-              initial={{ opacity: 0, x: 100, filter: "blur(20px)" }}
-              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, x: -100, filter: "blur(20px)" }}
-              transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-              className="relative w-[500px] h-48 bg-[#e5d9d5] rounded-[60px] shadow-[20px_20px_60px_#beada8,-20px_-20px_60px_#ffffff] flex items-center px-8 gap-6 border border-white/20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="relative bg-white/80 backdrop-blur-xl rounded-full p-4 shadow-2xl flex items-center gap-6 border border-white/50"
             >
-              {/* Vinyl Record Section */}
-              <div className="relative flex-shrink-0">
-                {/* Vinyl Disc */}
-                <div 
-                  style={{ 
-                    animationPlayState: isPlayingMusic ? 'running' : 'paused',
-                    transformOrigin: "center"
-                  }}
-                  className="w-32 h-32 rounded-full bg-[#1a1a1a] flex items-center justify-center shadow-xl relative overflow-hidden animate-spin-slow"
+              <div className="flex flex-col items-center px-4">
+                <p className="text-xs font-bold text-primary/50 uppercase tracking-tighter mb-1">Playing</p>
+                <h3 className="text-primary font-display font-bold text-sm truncate max-w-[150px]">
+                  {currentTrack?.name}
+                </h3>
+              </div>
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setVolume(v => v === 0 ? 0.9 : 0)}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${volume === 0 ? 'bg-red-500 text-white' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
                 >
-                  {/* Grooves */}
-                  <div className="absolute inset-0 border-[8px] border-black/20 rounded-full" />
-                  <div className="absolute inset-[15px] border-[1px] border-white/5 rounded-full" />
-                  <div className="absolute inset-[30px] border-[1px] border-white/5 rounded-full" />
-                  <div className="absolute inset-[45px] border-[1px] border-white/5 rounded-full" />
-                  
-                  {/* Center Label */}
-                  <div className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center overflow-hidden border-2 border-black/40 z-10">
-                    {currentTrack?.image ? (
-                      <img 
-                        src={currentTrack.image} 
-                        alt="Label" 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-pink-400 to-pink-600" />
-                    )}
-                  </div>
-                  <div className="absolute w-1 h-1 bg-white rounded-full z-20" />
-                </div>
+                  {volume === 0 ? <MicOff size={20} /> : <Zap size={20} />}
+                </button>
 
-                {/* Tonearm */}
-                <motion.div 
-                  animate={{ rotate: isPlayingMusic ? 25 : 0 }}
-                  className="absolute -top-4 right-0 w-16 h-20 origin-top-right pointer-events-none z-20"
+                <button 
+                  onClick={() => handleMusicControl('stop_all')}
+                  className="w-12 h-12 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-all shadow-lg"
                 >
-                  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md">
-                    <path d="M90,10 L90,30 L40,80 L35,75 L85,25 L85,10 Z" fill="#b0b0b0" />
-                    <circle cx="90" cy="15" r="8" fill="#808080" />
-                    <rect x="30" y="75" width="15" height="10" rx="2" fill="#404040" transform="rotate(-45 37.5 80)" />
-                  </svg>
-                </motion.div>
+                  <PhoneOff size={20} />
+                </button>
               </div>
 
-              {/* Info & Controls Section */}
-              <div className="flex-grow flex flex-col justify-center gap-3">
-                <div className="space-y-0.5">
-                  <h3 className="text-[#4a3f3b] font-serif font-bold text-lg truncate max-w-[200px]">
-                    {(typeof currentTrack?.artist === 'string' ? currentTrack.artist : currentTrack?.artist?.name) || "Unknown Artist"} / {currentTrack?.name || "Unknown Track"}
-                  </h3>
-                </div>
-
-                {/* Control Buttons */}
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => handleMusicControl('previous')}
-                    className="w-10 h-10 rounded-full bg-[#e5d9d5] shadow-[4px_4px_8px_#beada8,-4px_-4px_8px_#ffffff] flex items-center justify-center text-[#4a3f3b] active:shadow-inner transition-all"
-                  >
-                    <SkipBack size={18} fill="currentColor" />
-                  </button>
-
-                  <button 
-                    onClick={() => handleMusicControl(isPlayingMusic ? 'pause' : 'resume')}
-                    className="w-12 h-12 rounded-full bg-pink-500 shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.2),4px_4px_8px_#beada8] flex items-center justify-center text-white active:scale-95 transition-all"
-                  >
-                    {isPlayingMusic ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" className="ml-1" />}
-                  </button>
-
-                  <button 
-                    onClick={() => handleMusicControl('next')}
-                    className="w-10 h-10 rounded-full bg-[#e5d9d5] shadow-[4px_4px_8px_#beada8,-4px_-4px_8px_#ffffff] flex items-center justify-center text-[#4a3f3b] active:shadow-inner transition-all"
-                  >
-                    <SkipForward size={18} fill="currentColor" />
-                  </button>
-
-                  <button 
-                    onClick={() => setActiveTab('music')}
-                    className="w-10 h-10 rounded-full bg-[#e5d9d5] shadow-[4px_4px_8px_#beada8,-4px_-4px_8px_#ffffff] flex items-center justify-center text-[#4a3f3b] active:shadow-inner transition-all"
-                  >
-                    <History size={18} />
-                  </button>
-                </div>
-
-                {/* Duration & Progress */}
-                <div className="space-y-2">
-                  <p className="text-[#8a7a75] font-mono text-[11px] font-bold">
-                    Duration: {formatTime(currentTime)} / {formatTime(duration)}
-                  </p>
-                  <div 
-                    className="relative w-full h-1.5 bg-[#d1c4bf] rounded-full overflow-hidden cursor-pointer shadow-inner"
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const x = e.clientX - rect.left;
-                      const pct = x / rect.width;
-                      if (internalPlayerRef.current && typeof internalPlayerRef.current.seekTo === 'function') {
-                        internalPlayerRef.current.seekTo(pct * duration);
-                      }
-                    }}
-                  >
-                    <motion.div 
-                      className="absolute top-0 left-0 h-full bg-pink-500"
-                      style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Volume Arc Section */}
-              <div className="relative w-24 h-24 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <path 
-                    d="M 50,50 m 0,-40 a 40,40 0 1,1 0,80 a 40,40 0 1,1 0,-80" 
-                    fill="none" 
-                    stroke="#d1c4bf" 
-                    strokeWidth="6" 
-                    strokeDasharray="125 251"
-                  />
-                  <path 
-                    d="M 50,50 m 0,-40 a 40,40 0 1,1 0,80 a 40,40 0 1,1 0,-80" 
-                    fill="none" 
-                    stroke="#ec4899" 
-                    strokeWidth="6" 
-                    strokeDasharray={`${volume * 125} 251`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-10 h-10 rounded-full bg-[#e5d9d5] shadow-[2px_2px_4px_#beada8] flex items-center justify-center text-[#4a3f3b]">
-                    <Zap size={14} fill="currentColor" />
-                  </div>
-                </div>
-                {/* Volume Control Overlay */}
-                <input 
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-              </div>
-
-              {/* Close Button */}
               <button 
                 onClick={() => setShowMusicControlsOverlay(false)}
-                className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
+                className="p-2 text-slate-400 hover:text-primary transition-colors"
               >
-                <X size={16} />
+                <X size={20} />
               </button>
             </motion.div>
           )}
@@ -1017,18 +878,10 @@ export default function App() {
             </p>
             <p className="text-red-400 text-xs leading-relaxed mb-3">
               {errorMessage.includes("quota") 
-                ? "You've hit the shared free usage limit for Gemini. To continue talking to sara, please select your own API key." 
-                : "There was a problem connecting to sara. Please check your internet and try again."}
+                ? `The free usage limit for ${assistantName} has been reached. Please try again later.` 
+                : `There was a problem connecting to ${assistantName}. Please check your internet and try again.`}
             </p>
-            {errorMessage.includes("quota") ? (
-              <button 
-                onClick={handleSelectKey}
-                className="w-full py-2 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-              >
-                <Zap size={14} fill="currentColor" />
-                Select API Key Now
-              </button>
-            ) : (
+            {errorMessage.includes("quota") ? null : (
               <button 
                 onClick={() => window.location.reload()}
                 className="w-full py-2 bg-slate-700 text-white rounded-xl text-xs font-bold hover:bg-slate-600 transition-colors"
@@ -1039,17 +892,7 @@ export default function App() {
           </motion.div>
         )}
 
-        {needsApiKey && !errorMessage?.includes("quota") && (
-          <motion.button 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={handleSelectKey}
-            className="mt-4 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-primary rounded-2xl font-bold transition-all flex items-center gap-3 hover:bg-white/20 active:scale-95 shadow-lg"
-          >
-            <Zap size={18} className="text-accent" />
-            Quota Exceeded? Select Your API Key
-          </motion.button>
-        )}
+        {/* Removed needsApiKey prompt */}
       </div>
 
       {/* Profile Modal */}
@@ -1063,7 +906,7 @@ export default function App() {
               className="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold text-white tracking-tight">sara's World</h2>
+                <h2 className="text-3xl font-bold text-white tracking-tight">{assistantName}'s World</h2>
                 <button onClick={() => setShowProfile(false)} className="p-2 text-slate-400 hover:text-white transition-colors">
                   <X size={28} />
                 </button>
@@ -1096,6 +939,7 @@ export default function App() {
                       name: formData.get('name') as string,
                       preferences: {
                         ...profile?.preferences,
+                        assistantName: formData.get('assistantName') as string,
                         hobbies: formData.get('hobbies') as string,
                         birthday: formData.get('birthday') as string,
                       }
@@ -1104,94 +948,54 @@ export default function App() {
                     <div className="space-y-3">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Voice</label>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="relative group">
-                          <button
-                            type="button"
-                            onClick={() => updateProfile({ preferences: { ...profile?.preferences, voiceId: '1Z7Y8o9cvUeWq8oLKgMY' } })}
-                            className={`w-full p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${
-                              (profile?.preferences.voiceId || '1Z7Y8o9cvUeWq8oLKgMY') === '1Z7Y8o9cvUeWq8oLKgMY'
-                                ? 'bg-pink-500/20 border-pink-500 text-white'
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
-                            }`}
-                          >
-                            <Smile size={24} />
-                            <span className="font-bold">sara</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => playVoicePreview('1Z7Y8o9cvUeWq8oLKgMY')}
-                            className="absolute top-2 right-2 p-1.5 bg-white/10 rounded-full hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Phone size={12} />
-                          </button>
-                        </div>
-
-                        <div className="relative group">
-                          <button
-                            type="button"
-                            onClick={() => updateProfile({ preferences: { ...profile?.preferences, voiceId: 'gG1NcqH2SGgJqd3cMAHV' } })}
-                            className={`w-full p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${
-                              profile?.preferences.voiceId === 'gG1NcqH2SGgJqd3cMAHV'
-                                ? 'bg-pink-500/20 border-pink-500 text-white'
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
-                            }`}
-                          >
-                            <Heart size={24} />
-                            <span className="font-bold">Aisha</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => playVoicePreview('gG1NcqH2SGgJqd3cMAHV')}
-                            className="absolute top-2 right-2 p-1.5 bg-white/10 rounded-full hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Phone size={12} />
-                          </button>
-                        </div>
-
-                        <div className="relative group">
-                          <button
-                            type="button"
-                            onClick={() => updateProfile({ preferences: { ...profile?.preferences, voiceId: 'EXAVITQu4vr4xnSDxMaL' } })}
-                            className={`w-full p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${
-                              profile?.preferences.voiceId === 'EXAVITQu4vr4xnSDxMaL'
-                                ? 'bg-pink-500/20 border-pink-500 text-white'
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
-                            }`}
-                          >
-                            <Zap size={24} />
-                            <span className="font-bold">Bella</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => playVoicePreview('EXAVITQu4vr4xnSDxMaL')}
-                            className="absolute top-2 right-2 p-1.5 bg-white/10 rounded-full hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Phone size={12} />
-                          </button>
-                        </div>
-
-                        <div className="relative group">
-                          <button
-                            type="button"
-                            onClick={() => updateProfile({ preferences: { ...profile?.preferences, voiceId: 'pNInz6obpgDQGcFmaJgB' } })}
-                            className={`w-full p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${
-                              profile?.preferences.voiceId === 'pNInz6obpgDQGcFmaJgB'
-                                ? 'bg-pink-500/20 border-pink-500 text-white'
-                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
-                            }`}
-                          >
-                            <Coffee size={24} />
-                            <span className="font-bold">Adam</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => playVoicePreview('pNInz6obpgDQGcFmaJgB')}
-                            className="absolute top-2 right-2 p-1.5 bg-white/10 rounded-full hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Phone size={12} />
-                          </button>
-                        </div>
+                        {[
+                          { id: "sara", voiceId: "H6QPv2pQZDcGqLwDTIJQ", label: "sara", icon: <Smile size={24} /> },
+                          { id: "aisha", voiceId: "vzov6y10x6nsGNFg883S", label: "Aisha", icon: <Heart size={24} /> },
+                          { id: "anshi", voiceId: "UbB19hYD8fvYxwJAVTY5", label: "Anshika", icon: <Zap size={24} /> },
+                          { id: "nisha", voiceId: "LWFgMHXb8m0uANBUpzlq", label: "Niahu", icon: <Coffee size={24} /> }
+                        ].map((v) => (
+                          <div key={v.id} className="relative group">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateProfile({ 
+                                  preferences: { 
+                                    ...profile?.preferences, 
+                                    voiceId: v.voiceId,
+                                    assistantName: v.label
+                                  } 
+                                });
+                              }}
+                              className={`w-full p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${
+                                (profile?.preferences.voiceId || 'H6QPv2pQZDcGqLwDTIJQ') === v.voiceId
+                                  ? 'bg-pink-500/20 border-pink-500 text-white'
+                                  : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
+                              }`}
+                            >
+                              {v.icon}
+                              <span className="font-bold">{v.label}</span>
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => playVoicePreview(v.voiceId)}
+                              className="absolute top-2 right-2 p-1.5 bg-white/10 rounded-full hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Phone size={12} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Assistant Name</label>
+                      <input 
+                        name="assistantName"
+                        type="text"
+                        defaultValue={assistantName}
+                        placeholder="e.g. sara, Nishu, etc."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors"
+                      />
                     </div>
 
                     <div className="space-y-3">
@@ -1226,7 +1030,15 @@ export default function App() {
                       className="w-full py-5 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl font-bold text-lg transition-all shadow-xl shadow-pink-500/30 flex items-center justify-center gap-3 active:scale-95"
                     >
                       <Save size={24} />
-                      Save Memory
+                      Change name & Save Details
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setShowProfile(false)}
+                      className="w-full py-4 bg-white/5 hover:bg-white/10 text-slate-400 rounded-2xl font-bold text-lg transition-all border border-white/10 flex items-center justify-center gap-3 active:scale-95 mt-4"
+                    >
+                      <X size={24} />
+                      Close Settings
                     </button>
                   </form>
                 ) : (
